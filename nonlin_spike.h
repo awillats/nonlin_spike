@@ -22,15 +22,20 @@
  */
 
 #include <default_gui_model.h>
+#include <math.h>
+#include <random>
 
-class PluginTemplate : public DefaultGUIModel
+  #define EXP 0
+  #define SOFTLOG 1
+
+class NonlinSpike : public DefaultGUIModel
 {
 
   Q_OBJECT
 
 public:
-  PluginTemplate(void);
-  virtual ~PluginTemplate(void);
+  NonlinSpike(void);
+  virtual ~NonlinSpike(void);
 
   void execute(void);
   void createGUI(DefaultGUIModel::variable_t*, int);
@@ -40,9 +45,18 @@ protected:
   virtual void update(DefaultGUIModel::update_flags_t);
 
 private:
+
   double some_parameter;
   double some_state;
   double period;
+
+  std::random_device rd;
+  std::mt19937 gen;
+
+  double gain;
+  double shft;
+  double bias;
+  int nlmode;
 
   void initParameters();
 

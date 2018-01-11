@@ -21,32 +21,54 @@
  * DefaultGUIModel with a custom GUI.
  */
 
-#include "plugin-template.h"
+
+//TO-DO: I should almost certainly use a comboBox gui element to select between nonlinearities!
+
+
+#include "nonlin_spike.h"
 #include <iostream>
 #include <main_window.h>
 
 extern "C" Plugin::Object*
 createRTXIPlugin(void)
 {
-  return new PluginTemplate();
+  return new NonlinSpike();
 }
 
 static DefaultGUIModel::variable_t vars[] = {
   {
-    "GUI label", "Tooltip description",
+    "Gain", " ",
     DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE,
   },
   {
-    "A State", "Tooltip description", DefaultGUIModel::STATE,
+    "Shift", " ",
+    DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE,
   },
+  {
+    "Bias", " ",
+    DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE,
+  },
+   {
+    "x in", " ",
+    DefaultGUIModel::INPUT,
+   },
+   {
+    "spike out", " ",
+    DefaultGUIModel::OUTPUT,
+   },
+   {
+    "prob out", " ",
+    DefaultGUIModel::OUTPUT,
+   },
+
 };
 
 static size_t num_vars = sizeof(vars) / sizeof(DefaultGUIModel::variable_t);
 
-PluginTemplate::PluginTemplate(void)
-  : DefaultGUIModel("PluginTemplate with Custom GUI", ::vars, ::num_vars)
+NonlinSpike::NonlinSpike(void)
+  : DefaultGUIModel("NonlinSpike with Custom GUI", ::vars, ::num_vars)
 {
-  setWhatsThis("<p><b>PluginTemplate:</b><br>QWhatsThis description.</p>");
+  setWhatsThis("<p><b>NonlinSpike:</b><br>QWhatsThis description.</p>");
   DefaultGUIModel::createGUI(vars,
                              num_vars); // this is required to create the GUI
   customizeGUI();
@@ -58,35 +80,69 @@ PluginTemplate::PluginTemplate(void)
   QTimer::singleShot(0, this, SLOT(resizeMe()));
 }
 
-PluginTemplate::~PluginTemplate(void)
+NonlinSpike::~NonlinSpike(void)
 {
 }
 
 void
-PluginTemplate::execute(void)
+NonlinSpike::execute(void)
 {
+
+  double x = input(0);
+  double z; 
+  int spike;
+
+
+  switch (nlmode)
+  {
+  	case EXP: z = bias+exp(x*gain+shft);
+				break;
+	case SOFTLOG: z = log(bias+exp(x*gain+shft));
+				break;
+	default: z = (x*gain+shft)+bias;
+  }
+
+  if (z<0) {z=0;};
+  if (z>1) {z=1;};
+
+  std::uniform_real_distribution<double> unif(0, 1);
+  spike = (unif(gen) < z) ? 1 : 0;
+
+  output(0) = spike;
+  output(1) = z;
   return;
 }
 
 void
-PluginTemplate::initParameters(void)
+NonlinSpike::initParameters(void)
 {
   some_parameter = 0;
   some_state = 0;
+
+  gain=1e-3;
+  shft=0;
+  bias=0;
+
+  nlmode=EXP;
+
+  gen.seed(rd());
 }
 
 void
-PluginTemplate::update(DefaultGUIModel::update_flags_t flag)
+NonlinSpike::update(DefaultGUIModel::update_flags_t flag)
 {
   switch (flag) {
     case INIT:
       period = RT::System::getInstance()->getPeriod() * 1e-6; // ms
-      setParameter("GUI label", some_parameter);
-      setState("A State", some_state);
+      setParameter("Gain (*1e-3)", gain/1e-3);
+      setParameter("Shift", shft);      
+	  setParameter("Bias", bias);
       break;
 
     case MODIFY:
-      some_parameter = getParameter("GUI label").toDouble();
+      gain = getParameter("Gain").toDouble()*1e-3;
+      shft = getParameter("Shift").toDouble();
+      bias = getParameter("Bias").toDouble();
       break;
 
     case UNPAUSE:
@@ -105,7 +161,7 @@ PluginTemplate::update(DefaultGUIModel::update_flags_t flag)
 }
 
 void
-PluginTemplate::customizeGUI(void)
+NonlinSpike::customizeGUI(void)
 {
   QGridLayout* customlayout = DefaultGUIModel::getLayout();
 
@@ -126,11 +182,11 @@ PluginTemplate::customizeGUI(void)
 
 // functions designated as Qt slots are implemented as regular C++ functions
 void
-PluginTemplate::aBttn_event(void)
+NonlinSpike::aBttn_event(void)
 {
 }
 
 void
-PluginTemplate::bBttn_event(void)
+NonlinSpike::bBttn_event(void)
 {
 }

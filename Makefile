@@ -1,9 +1,9 @@
-PLUGIN_NAME = plugin_template
+PLUGIN_NAME = nonlin_spike
 
-HEADERS = plugin-template.h
+HEADERS = nonlin_spike.h
 
-SOURCES = plugin-template.cpp\
-          moc_plugin-template.cpp\
+SOURCES = nonlin_spike.cpp\
+          moc_nonlin_spike.cpp\
 
 LIBS = 
 
